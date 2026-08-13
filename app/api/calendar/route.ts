@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     // Try a single unified cache entry for all events + OOO data
-    const cacheKey = 'calendar:all';
+    const cacheKey = keys.calendarAll;
     type CachedPayload = { events: CalendarEvent[]; oooByEmail: Record<string, string[]> };
     let cached: CachedPayload | null = await redis.get(cacheKey);
 
