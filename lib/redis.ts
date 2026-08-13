@@ -20,8 +20,7 @@ export const redis = new Proxy({} as Redis, {
 });
 
 export const keys = {
-  calendarCache: (email: string) => `calendar:${email}`,
-  oooCache: (email: string) => `ooo:${email}`,
+  calendarAll: 'calendar:all' as const,
   manualUnavailable: (email: string) => `unavailable:${email}`,
   coverage: (eventId: string) => `coverage:${eventId}`,
 };
