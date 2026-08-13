@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { fetchEventsForUser, detectOOODates } from '@/lib/google-calendar';
+import { fetchAllEvents } from '@/lib/google-calendar';
 import { redis, keys } from '@/lib/redis';
-import { CSM_EMAILS } from '@/lib/team';
 import { CalendarEvent } from '@/types';
 
 const CACHE_TTL = 900; // 15 minutes
@@ -15,57 +14,51 @@ export async function GET() {
   }
 
   try {
-    const allEvents: CalendarEvent[] = [];
+    // Try a single unified cache entry for all events + OOO data
+    const cacheKey = 'calendar:all';
+    type CachedPayload = { events: CalendarEvent[]; oooByEmail: Record<string, string[]> };
+    let cached: CachedPayload | null = await redis.get(cacheKey);
+
+    let events: CalendarEvent[];
+    let oooByEmail: Record<string, string[]>;
+
+    if (cached) {
+      ({ events, oooByEmail } = cached);
+    } else {
+      ({ events, oooByEmail } = await fetchAllEvents());
+      await redis.set(cacheKey, { events, oooByEmail }, { ex: CACHE_TTL });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
     const unavailableDates: Record<string, string[]> = {};
 
+    // Merge OOO calendar dates + manual unavailability per CSM
+    const uniqueEmails = [...new Set(events.map(e => e.csmEmail))];
     await Promise.all(
-      CSM_EMAILS.map(async (email) => {
-        // Try cache first
-        let events: CalendarEvent[] | null = await redis.get(keys.calendarCache(email));
-        let oooDates: string[] | null = await redis.get(keys.oooCache(email));
-
-        if (!events) {
-          events = await fetchEventsForUser(email);
-          await redis.set(keys.calendarCache(email), events, { ex: CACHE_TTL });
-        }
-
-        if (!oooDates) {
-          oooDates = await detectOOODates(email);
-          await redis.set(keys.oooCache(email), oooDates, { ex: CACHE_TTL });
-        }
-
-        // Check manual unavailability
+      uniqueEmails.map(async (email) => {
         const manualUnavailable: boolean | null = await redis.get(keys.manualUnavailable(email));
-        const today = new Date().toISOString().slice(0, 10);
-        unavailableDates[email] = oooDates ?? [];
-
-        // Mark events needing coverage
-        const enrichedEvents = events.map(event => {
-          const eventDate = new Date(event.startTime).toISOString().slice(0, 10);
-          const needsCoverage =
-            oooDates?.includes(eventDate) ||
-            (manualUnavailable === true && eventDate === today);
-          return { ...event, needsCoverage: needsCoverage ?? false };
-        });
-
-        // Check coverage claims
-        const eventsWithCoverage = await Promise.all(
-          enrichedEvents.map(async event => {
-            const coveredBy: string | null = await redis.get(keys.coverage(event.id));
-            return coveredBy ? { ...event, coveredBy } : event;
-          })
-        );
-
-        allEvents.push(...eventsWithCoverage);
+        const oooDates = oooByEmail[email] ?? [];
+        unavailableDates[email] = manualUnavailable
+          ? [...new Set([...oooDates, today])]
+          : oooDates;
       })
     );
 
-    // Sort by start time
-    allEvents.sort(
-      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    // Apply coverage flags and claimed coverage to each event
+    const enrichedEvents = await Promise.all(
+      events.map(async (event) => {
+        const eventDate = new Date(event.startTime).toISOString().slice(0, 10);
+        const needsCoverage = unavailableDates[event.csmEmail]?.includes(eventDate) ?? false;
+        const coveredBy: string | null = await redis.get(keys.coverage(event.id));
+        return {
+          ...event,
+          needsCoverage,
+          ...(coveredBy ? { coveredBy } : {}),
+        };
+      })
     );
 
-    return NextResponse.json({ events: allEvents, unavailableDates });
+    return NextResponse.json({ events: enrichedEvents, unavailableDates });
   } catch (err) {
     console.error('Calendar fetch error:', err);
     return NextResponse.json({ error: 'Failed to fetch calendar data' }, { status: 500 });
