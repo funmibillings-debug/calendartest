@@ -15,13 +15,15 @@ import { Button } from '@/components/ui/button';
 interface Props {
   event: CalendarEvent;
   account: SalesforceAccount | null;
+  currentUserEmail: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function ShadowRequestModal({ event, account, open, onClose }: Props) {
+export function ShadowRequestModal({ event, account, currentUserEmail, open, onClose }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const csm = getMemberByEmail(event.csmEmail);
+  const requester = getMemberByEmail(currentUserEmail);
 
   async function handleRequest() {
     setStatus('loading');
@@ -33,6 +35,8 @@ export function ShadowRequestModal({ event, account, open, onClose }: Props) {
         meetingTitle: event.title,
         customerName: account?.name,
         startTime: event.startTime,
+        requesterEmail: currentUserEmail,
+        requesterName: requester?.name ?? currentUserEmail,
       }),
     });
     setStatus(res.ok ? 'success' : 'error');

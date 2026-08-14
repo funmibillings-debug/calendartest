@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { fetchAllEvents } from '@/lib/google-calendar';
 import { redis, keys } from '@/lib/redis';
 import { CalendarEvent } from '@/types';
@@ -8,13 +7,7 @@ import { CalendarEvent } from '@/types';
 const CACHE_TTL = 900; // 15 minutes
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    // Try a single unified cache entry for all events + OOO data
     const cacheKey = keys.calendarAll;
     type CachedPayload = { events: CalendarEvent[]; oooByEmail: Record<string, string[]> };
     let cached: CachedPayload | null = await redis.get(cacheKey);
@@ -32,7 +25,6 @@ export async function GET() {
     const today = new Date().toISOString().slice(0, 10);
     const unavailableDates: Record<string, string[]> = {};
 
-    // Merge OOO calendar dates + manual unavailability per CSM
     const uniqueEmails = [...new Set(events.map(e => e.csmEmail))];
     await Promise.all(
       uniqueEmails.map(async (email) => {
@@ -44,7 +36,6 @@ export async function GET() {
       })
     );
 
-    // Apply coverage flags and claimed coverage to each event
     const enrichedEvents = await Promise.all(
       events.map(async (event) => {
         const eventDate = new Date(event.startTime).toISOString().slice(0, 10);

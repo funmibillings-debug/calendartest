@@ -149,12 +149,14 @@ export function MeetingCard({ event, account, currentUserEmail, onCoverClaimed }
       <ShadowRequestModal
         event={event}
         account={account}
+        currentUserEmail={currentUserEmail}
         open={showShadow}
         onClose={() => setShowShadow(false)}
       />
       <CoverageModal
         event={event}
         account={account}
+        currentUserEmail={currentUserEmail}
         open={showCoverage}
         onClose={() => setShowCoverage(false)}
         onClaimed={() => {

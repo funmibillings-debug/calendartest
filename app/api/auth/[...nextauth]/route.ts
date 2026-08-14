@@ -1,30 +1,11 @@
-import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
+import { NextResponse } from 'next/server';
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  callbacks: {
-    async signIn({ profile }) {
-      const email = profile?.email ?? '';
-      return email.endsWith('@coderabbit.ai');
-    },
-    async session({ session }) {
-      if (session.user?.email) {
-        (session.user as { email?: string; role?: string }).role =
-          session.user.email === 'daniel@coderabbit.ai' ? 'vp' : 'csm';
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
-});
-
-export { handler as GET, handler as POST };
+// Google OAuth is not yet configured. This route is a stub so the build
+// doesn't fail. Re-enable NextAuth here once GOOGLE_CLIENT_ID and
+// GOOGLE_CLIENT_SECRET are available.
+export async function GET() {
+  return NextResponse.json({ error: 'OAuth not configured' }, { status: 503 });
+}
+export async function POST() {
+  return NextResponse.json({ error: 'OAuth not configured' }, { status: 503 });
+}

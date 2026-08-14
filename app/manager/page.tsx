@@ -1,28 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { useCalendar } from '@/hooks/useCalendar';
 import { AppHeader } from '@/components/AppHeader';
 import { CapacityChart } from '@/components/CapacityChart';
 
 export default function ManagerPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const { events, isLoading } = useCalendar();
-
-  if (status === 'unauthenticated') {
-    router.replace('/login');
-    return null;
-  }
-
-  // Only accessible by VP or app owner
-  const email = session?.user?.email ?? '';
-  const role = (session?.user as { role?: string })?.role ?? 'csm';
-  if (status === 'authenticated' && role !== 'vp' && email !== 'funmi@coderabbit.ai') {
-    router.replace('/');
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
