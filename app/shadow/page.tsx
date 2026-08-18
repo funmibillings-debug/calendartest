@@ -1,8 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCalendar, useSalesforceAccount } from '@/hooks/useCalendar';
 import { AppHeader } from '@/components/AppHeader';
 import { MeetingCard } from '@/components/MeetingCard';
@@ -29,13 +28,11 @@ function EventCardWrapper({
 }
 
 export default function ShadowPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { user } = useCurrentUser();
   const { events, isLoading, refresh } = useCalendar();
 
-  const currentUserEmail = session?.user?.email ?? '';
+  const currentUserEmail = user?.email ?? '';
 
-  // Show this week + next week, exclude the current user's own calls
   const upcoming = useMemo(() => {
     const now = new Date();
     const twoWeeksOut = new Date(now.getTime() + 14 * 86400 * 1000);
@@ -48,11 +45,6 @@ export default function ShadowPage() {
       );
     });
   }, [events, currentUserEmail]);
-
-  if (status === 'unauthenticated') {
-    router.replace('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex flex-col">

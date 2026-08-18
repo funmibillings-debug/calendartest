@@ -16,18 +16,20 @@ import { Button } from '@/components/ui/button';
 interface Props {
   event: CalendarEvent;
   account: SalesforceAccount | null;
+  currentUserEmail: string;
   open: boolean;
   onClose: () => void;
   onClaimed: () => void;
 }
 
-export function CoverageModal({ event, account, open, onClose, onClaimed }: Props) {
+export function CoverageModal({ event, account, currentUserEmail, open, onClose, onClaimed }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const originalCSM = getMemberByEmail(event.csmEmail);
 
   async function handleClaim() {
     setStatus('loading');
     const ok = await claimCoverage({
+      coveringEmail: currentUserEmail,
       eventId: event.id,
       originalCsmEmail: event.csmEmail,
       meetingTitle: event.title,

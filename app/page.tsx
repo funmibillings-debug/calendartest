@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCalendar, useSalesforceAccount } from '@/hooks/useCalendar';
 import { AppHeader } from '@/components/AppHeader';
 import { FilterBar, Filters } from '@/components/FilterBar';
@@ -56,12 +55,11 @@ function EventCardWrapper({
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { user } = useCurrentUser();
   const { events, isLoading, refresh } = useCalendar();
   const [filters, setFilters] = useState<Filters>(defaultFilters);
 
-  const currentUserEmail = session?.user?.email ?? '';
+  const currentUserEmail = user?.email ?? '';
 
   const filtered = useMemo(() => {
     return events.filter(e => {
@@ -76,11 +74,6 @@ export default function DashboardPage() {
 
   const grouped = groupByDate(filtered);
   const needsCoverageCount = filtered.filter(e => e.needsCoverage && !e.coveredBy).length;
-
-  if (status === 'unauthenticated') {
-    router.replace('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex flex-col">

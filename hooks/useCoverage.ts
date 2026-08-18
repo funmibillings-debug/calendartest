@@ -5,9 +5,9 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-export function useMyAvailability() {
+export function useMyAvailability(email: string) {
   const { data, mutate } = useSWR<{ unavailable: boolean }>(
-    '/api/coverage',
+    email ? `/api/coverage?email=${encodeURIComponent(email)}` : null,
     fetcher,
     { refreshInterval: 60 * 1000 }
   );
@@ -19,7 +19,7 @@ export function useMyAvailability() {
     await fetch('/api/coverage?action=mark-unavailable', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ unavailable, affectedMeetingTitles }),
+      body: JSON.stringify({ email, unavailable, affectedMeetingTitles }),
     });
     await mutate();
     setLoading(false);
@@ -33,12 +33,14 @@ export function useMyAvailability() {
 }
 
 export async function claimCoverage({
+  coveringEmail,
   eventId,
   originalCsmEmail,
   meetingTitle,
   customerName,
   startTime,
 }: {
+  coveringEmail: string;
   eventId: string;
   originalCsmEmail: string;
   meetingTitle: string;
@@ -48,7 +50,14 @@ export async function claimCoverage({
   const res = await fetch('/api/coverage?action=claim', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ eventId, originalCsmEmail, meetingTitle, customerName, startTime }),
+    body: JSON.stringify({
+      coveringEmail,
+      eventId,
+      originalCsmEmail,
+      meetingTitle,
+      customerName,
+      startTime,
+    }),
   });
   return res.ok;
 }
