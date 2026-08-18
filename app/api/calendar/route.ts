@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const cacheKey = keys.calendarAll;
     type CachedPayload = { events: CalendarEvent[]; oooByEmail: Record<string, string[]> };
-    let cached: CachedPayload | null = await redis.get(cacheKey);
+    const cached: CachedPayload | null = await redis.get(cacheKey);
 
     let events: CalendarEvent[];
     let oooByEmail: Record<string, string[]>;
