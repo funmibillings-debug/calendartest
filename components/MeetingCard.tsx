@@ -122,7 +122,7 @@ export function MeetingCard({ event, account, currentUserEmail, onCoverClaimed }
           <div className="mt-4 flex items-center justify-between gap-2">
             <CSMAvatar email={event.csmEmail} size="sm" showName />
             <div className="flex items-center gap-2">
-              {!isOwner && (
+              {currentUserEmail && !isOwner && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -132,7 +132,7 @@ export function MeetingCard({ event, account, currentUserEmail, onCoverClaimed }
                   Request to Shadow
                 </Button>
               )}
-              {event.needsCoverage && !isCovered && !isOwner && (
+              {currentUserEmail && event.needsCoverage && !isCovered && !isOwner && (
                 <Button
                   size="sm"
                   onClick={() => setShowCoverage(true)}

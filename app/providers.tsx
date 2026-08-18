@@ -1,5 +1,7 @@
 'use client';
 
+import { CurrentUserProvider } from '@/contexts/current-user';
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <CurrentUserProvider>{children}</CurrentUserProvider>;
 }
