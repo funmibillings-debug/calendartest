@@ -1,7 +1,6 @@
 import { CalendarEvent } from '@/types';
 import { classifyMeeting } from './meeting-classifier';
 
-const OOO_KEYWORDS = ['ooo', 'out of office', 'vacation', 'pto', 'holiday', 'sick', 'leave'];
 
 interface ScriptAttendee {
   email: string;
